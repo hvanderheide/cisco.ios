@@ -25,7 +25,7 @@ import json
 import re
 
 from ansible.errors import AnsibleConnectionFailure
-from ansible.module_utils._text import to_bytes, to_text
+from ansible.module_utils.common.text.converters import to_bytes, to_text
 from ansible.utils.display import Display
 from ansible_collections.ansible.netcommon.plugins.plugin_utils.terminal_base import TerminalBase
 
@@ -56,13 +56,14 @@ class TerminalModule(TerminalBase):
         re.compile(rb"% ?(\S+) ?Error: ?[\s]+", re.I),
         re.compile(rb"% ?(\S+) ?Informational: ?[\s]+", re.I),
         re.compile(rb"Command authorization failed"),
-        re.compile(rb"Command Rejected: ?[\s]+", re.I),
+        re.compile(rb"Command Rejected(\s*\([^)]*\))?\s*: ?[\s]+", re.I),
         re.compile(
             rb"% General session commands not allowed under the address family",
             re.I,
         ),
         re.compile(rb"% BGP: Error initializing topology", re.I),
         re.compile(rb"%SNMP agent not enabled", re.I),
+        re.compile(rb"% ?IPv6 routing not enabled", re.I),
         re.compile(rb"% Invalid", re.I),
         re.compile(
             rb"%You must disable VTPv1 and VTPv2 or switch to VTPv3 before configuring a VLAN name longer than 32 characters",

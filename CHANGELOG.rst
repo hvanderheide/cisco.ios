@@ -4,6 +4,127 @@ Cisco Ios Collection Release Notes
 
 .. contents:: Topics
 
+v11.5.1
+=======
+
+Bugfixes
+--------
+
+- ios_acls - Correct port to protocol mapping for port 5001 and 5002.
+- ios_bgp_address_family - Add ``vpls`` as a valid ``safi`` choice for the ``l2vpn`` address family configuration.
+- ios_user - fixed hashed_password idempotency so that re-applying the same type/value pair against an already-configured user produces no commands, preventing unnecessary password updates on repeat runs.
+- ios_user - parse_hashed_password  helper now extracts the stored hash type, hash value from running config, enabling proper diff-based idempotency checks for hashed_password.
+- ios_user - update_password and password_type are now resolved per aggregate item via get_param_value, allowing each entry in the aggregate list to independently override the module-level defaults
+- terminal - Add ``% IPv6 routing not enabled`` to ``terminal_stderr_re`` so that configuring BGP IPv6/VPNv6 address-family without ``ipv6 unicast-routing`` correctly raises an error instead of silently succeeding (https://github.com/ansible-collections/cisco.ios/issues/1301).
+
+Documentation Changes
+---------------------
+
+- ios_user - clarified that update_password (on_create/always) applies only to configured_password; hashed_password always uses hash type and value comparison to determine whether a change is required.
+- ios_user - documented type 9 (scrypt) as a valid hash type alongside the existing type 5 (MD5) and type 8 (PBKDF2) examples for hashed_password.
+
+v11.5.0
+=======
+
+Minor Changes
+-------------
+
+- Remediate deprecated ``warnings`` parameter in ``exit_json`` calls by using ``emit_warnings`` from ``ansible.netcommon`` across cisco.ios modules to address deprecation warning from ansible-core 2.23.
+- Remove ``ansible.module_utils.six`` usage in favour of Python 3 builtins to prepare for ansible-core 2.24 removal.
+- Replace deprecated ``ansible.module_utils._text`` imports with ``ansible.module_utils.common.text.converters``.
+- Replace deprecated ``ansible.module_utils.common._collections_compat`` with ``collections.abc`` from the Python standard library.
+- Updated all ``ResourceModule``-based resource modules to emit warnings via ``AnsibleModule.warn()`` before calling ``exit_json``.
+- Updated standalone modules (``ios_banner``, ``ios_command``, ``ios_config``, ``ios_facts``, ``ios_ping``, ``ios_system``, ``ios_user``, ``ios_vrf``) to emit warnings via ``AnsibleModule.warn()`` before calling ``exit_json``.
+
+Bugfixes
+--------
+
+- ios_acls - Fixed ACL option fields with multi-word names (e.g, any_options, stream_id , no_op) failing due to missing underscore to hyphen conversion and vice-versa in setval and getval respectively
+
+v11.4.2
+=======
+
+Bugfixes
+--------
+
+- ios_acls - Fix incorrect CLI command generation for IPv6 ACL remarks. The module now correctly generates ``sequence N remark`` syntax for IPv6 instead of the IPv4-style ``N remark`` format. Negation also correctly uses ``no sequence N remark``.
+- plugins/modules/ios_user.py - Fix matching existing SSH keys in running configurations while allowing optional trailing whitespace  when using the purge_keys parameter.
+
+v11.4.1
+=======
+
+Release Summary
+---------------
+
+This patch is a re-release of 11.4.0 with bug-fixes to action plugin symlinks.
+All action plugins have been renamed to use the `ios_`` prefix to match their module names.
+The previous release(11.4.0) fixed bugs across ios_acls (TCP ACL parsing), ios_config (multi-range interfaces), ios_snmp_users (authentication protocol), ios_static_routes (BFD crash), and terminal error handling.
+The previous release(11.4.0) deprecated the src parameter's automatic Jinja2 template processing in ios_config (removal March 2028), recommending migration to the new content parameter with ansible.builtin.template lookup.
+The previous release(11.4.0) added new features including the content parameter for pre-rendered configurations in ios_config and purge_keys parameter in ios_user for managing multiple SSH keys (max 2 per user).
+The previous release(11.4.0) updated dependencies and CI by bumping ansible.netcommon from >=8.1.0 to >=8.5.2 and modernizing integration tests to add stable-2.20 coverage while dropping stable-2.16.
+The previous release(11.4.0) fixed documentation in ios_bgp_global by updating stale EXAMPLES that referenced removed parameter names causing validation errors.
+
+Bugfixes
+--------
+
+- action plugins - Remove orphaned legacy action plugins ``bgp.py``, ``linkagg.py``, ``lldp.py`` and ``logging.py`` that had no corresponding module.
+- action plugins - Rename multiple resource module action plugins to use the ``ios_`` prefix to match their module names and fix ``action-plugin-docs`` sanity failures blocking Automation Hub certification.
+- meta/runtime.yml - Add ``plugin_routing.action`` redirects for all short-name aliases so alias-based invocations continue to resolve the renamed action plugins.
+- plugins/action/ios.py - Remove unused ``warnings`` list and unreachable dead code block that never executed due to ``warnings`` always being empty.
+- sanity - Remove stale ``action-plugin-docs`` ignore entries and delete ``ignore-2.14.txt`` and ``ignore-2.15.txt`` as the collection requires ``ansible>=2.16.0``.
+
+v11.4.0
+=======
+
+Minor Changes
+-------------
+
+- Updated ansible.netcommon dependency minimum required version from >=8.1.0 to >=8.5.1.
+- Updated ansible.netcommon dependency minimum required version from >=8.5.1 to >=8.5.2.
+- ci - Updated integration test matrix to add stable-2.20 coverage and drop stable-2.16 for libssh integration tests.
+- ios_config - Add ``content`` parameter to support pre-rendered template configurations. This provides a cleaner alternative to the deprecated template auto-processing behavior of the ``src`` parameter.
+- ios_user module adds purge_keys parameter to manage multiple SSH keys per user. Cisco IOS devices support maximum 2 SSH keys per user. The purge_keys parameter enables removal of existing keys not in the sshkey list when provisioning new keys.
+
+Deprecated Features
+-------------------
+
+- ios_config - The ``src`` parameter's automatic Jinja2 template processing is deprecated and will be removed in March 2028. Use the ``content`` parameter with ``ansible.builtin.template`` lookup instead.
+
+Bugfixes
+--------
+
+- ios_acls - Fixed ``'int' object has no attribute 'split'`` error when processing ACL configurations with TCP entries. The parser regex for ``icmp_igmp_protocol`` could capture trailing numeric values for non-ICMP/IGMP protocols. Fixed by restricting ``icmp_igmp_protocol`` to only apply when the protocol is ``icmp`` or ``igmp`` in the parser template, with a defensive type check in facts processing.
+- ios_config - Fix multi-range interface commands for ios_config module.
+- ios_snmp_users - Fixed authentication option to correctly handle authentication protocol configuration.
+- ios_static_routes - Fix gather crash when "ip route static bfd" is present on the device.
+- terminal_stderr_re - Updated to support variation of command rejected error from appliance.
+
+Documentation Changes
+---------------------
+
+- ios_bgp_global - Fix stale EXAMPLES that used removed parameter names (bestpath, nopeerup_delay, address, route_map) causing validation errors when copy-pasted. Updated to current argspec keys (bestpath_options, nopeerup_delay_options, neighbor_address, route_maps).
+
+v11.3.0
+=======
+
+Minor Changes
+-------------
+
+- Adds a new Resource Module `ios_bfd_interfaces` to configure BFD on interfaces.
+- Adds a new Resource Module `ios_bfd_templates` to configure BFD  using templates.
+- ios_l3_interfaces - Add support for 'redirects' and 'unreachables' attributes to configure ICMP redirect and unreachable messages.
+
+Bugfixes
+--------
+
+- Fixed delete and purged state function for ios_bfd_templates
+
+New Modules
+-----------
+
+- ios_bfd_interfaces - Resource module to configure bfd in interfaces.
+- ios_bfd_templates - Bidirectional Forwarding Detection (BFD) templates configurations
+
 v11.2.0
 =======
 

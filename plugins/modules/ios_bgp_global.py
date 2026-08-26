@@ -971,8 +971,9 @@ options:
               number:
                 description:
                   - AS number used as local AS
+                  - Accepts plain integers (e.g. C(65000)) and ASDOT notation (e.g. C(501.65083))
                   - Please refer vendor documentation for valid values
-                type: int
+                type: str
               dual_as:
                 description: Accept either real AS or local AS from the ebgp peer
                 type: bool
@@ -1663,8 +1664,8 @@ EXAMPLES = """
       as_number: 65000
       bgp:
         advertise_best_external: true
-        bestpath:
-          - compare_routerid: true
+        bestpath_options:
+          compare_routerid: true
         dampening:
           penalty_half_time: 1
           reuse_route_val: 1
@@ -1680,13 +1681,13 @@ EXAMPLES = """
           community: 100
           local_preference: 100
         log_neighbor_changes: true
-        nopeerup_delay:
-          - post_boot: 10
+        nopeerup_delay_options:
+          post_boot: 10
       networks:
         - address: 192.0.2.3
         - address: 192.0.2.2
-      neighbor:
-        - address: 192.0.2.1
+      neighbors:
+        - neighbor_address: 192.0.2.1
           description: merge neighbor
           remote_as: 100
           aigp:
@@ -1696,9 +1697,9 @@ EXAMPLES = """
                 poi:
                   igp_cost: true
                   transitive: true
-          route_map:
-            name: test-route
-            out: true
+          route_maps:
+            - name: test-route
+              out: true
       redistribute:
         - connected:
             metric: 10
@@ -1824,17 +1825,17 @@ EXAMPLES = """
       as_number: 65000
       bgp:
         advertise_best_external: true
-        bestpath:
-          - med:
-              confed: true
+        bestpath_options:
+          med:
+            confed: true
         log_neighbor_changes: true
-        nopeerup_delay:
-          - post_boot: 10
-            cold_boot: 20
+        nopeerup_delay_options:
+          post_boot: 10
+          cold_boot: 20
       networks:
         - address: 192.0.2.4
-      neighbor:
-        - address: 192.0.2.5
+      neighbors:
+        - neighbor_address: 192.0.2.5
           description: replace neighbor
           remote_as: 100
           slow_peer:
@@ -2852,6 +2853,9 @@ parsed:
 """
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.utils import (
+    emit_warnings,
+)
 
 from ansible_collections.cisco.ios.plugins.module_utils.network.ios.argspec.bgp_global.bgp_global import (
     Bgp_globalArgs,
@@ -2881,6 +2885,7 @@ def main():
     )
 
     result = Bgp_global(module).execute_module()
+    emit_warnings(module, result)
     module.exit_json(**result)
 
 
